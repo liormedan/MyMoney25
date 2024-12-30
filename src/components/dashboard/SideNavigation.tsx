@@ -8,6 +8,7 @@ import {
   Settings,
   PlusCircle,
   LogOut,
+  FileCheck,
 } from "lucide-react";
 import { NewTransactionDialog } from "./NewTransactionDialog";
 
@@ -40,9 +41,14 @@ const defaultItems: NavigationItem[] = [
     href: "/transactions",
   },
   {
+    icon: <FileCheck className="ml-2" />,
+    label: "התחייבויות",
+    href: "/obligations",
+  },
+  {
     icon: <Settings className="ml-2" />,
-    label: "הגדרות תקציב",
-    href: "/budget-settings",
+    label: "הגדרות",
+    href: "/settings",
   },
 ];
 

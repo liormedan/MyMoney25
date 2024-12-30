@@ -3,6 +3,8 @@ import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
 import ReportsPage from "./components/reports/ReportsPage";
 import TransactionsPage from "./components/transactions/TransactionsPage.jsx";
+import SettingsPage from "./components/settings/SettingsPage";
+import ObligationsPage from "./components/obligations/ObligationsPage";
 import routes from "tempo-routes";
 
 function App() {
@@ -13,6 +15,8 @@ function App() {
         <Route path="/dashboard" element={<Home />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/obligations" element={<ObligationsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
       {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
     </Suspense>
