@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   LayoutDashboard,
   FileText,
+  ListOrdered,
   Settings,
   PlusCircle,
   LogOut,
@@ -32,6 +33,11 @@ const defaultItems: NavigationItem[] = [
     icon: <FileText className="ml-2" />,
     label: "דוחות",
     href: "/reports",
+  },
+  {
+    icon: <ListOrdered className="ml-2" />,
+    label: "תנועות",
+    href: "/transactions",
   },
   {
     icon: <Settings className="ml-2" />,
