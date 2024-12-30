@@ -7,6 +7,7 @@ import {
   ListOrdered,
   Settings,
   PlusCircle,
+  User,
   LogOut,
   FileCheck,
 } from "lucide-react";
@@ -49,6 +50,11 @@ const defaultItems: NavigationItem[] = [
     icon: <Settings className="ml-2" />,
     label: "הגדרות",
     href: "/settings",
+  },
+  {
+    icon: <User className="ml-2" />,
+    label: "אזור אישי",
+    href: "/profile",
   },
 ];
 

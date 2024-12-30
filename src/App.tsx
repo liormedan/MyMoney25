@@ -6,6 +6,7 @@ import TransactionsPage from "./components/transactions/TransactionsPage.jsx";
 import SettingsPage from "./components/settings/SettingsPage";
 import ObligationsPage from "./components/obligations/ObligationsPage";
 import routes from "tempo-routes";
+import ProfilePage from "./components/profile/ProfilePage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/obligations" element={<ObligationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
       {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
     </Suspense>
