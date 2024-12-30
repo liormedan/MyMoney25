@@ -13,9 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CreditCard, FileCheck, Upload, Plus, FileDown } from "lucide-react";
+import { CreditCard, FileCheck, Upload, Plus } from "lucide-react";
 import SideNavigation from "../dashboard/SideNavigation";
 import { AddCheckDialog } from "./AddCheckDialog";
+import { AddChargeDialog } from "./AddChargeDialog";
 import { cn } from "@/lib/utils";
 
 interface Check {
@@ -74,9 +75,11 @@ const defaultCreditCharges: CreditCharge[] = [
 const ObligationsPage = () => {
   const navigate = useNavigate();
   const [isAddCheckOpen, setIsAddCheckOpen] = useState(false);
+  const [isAddChargeOpen, setIsAddChargeOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [checks, setChecks] = useState<Check[]>(defaultChecks);
-  const [creditCharges] = useState<CreditCharge[]>(defaultCreditCharges);
+  const [creditCharges, setCreditCharges] =
+    useState<CreditCharge[]>(defaultCreditCharges);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -113,6 +116,26 @@ const ObligationsPage = () => {
     setChecks([...checks, newCheck]);
   };
 
+  const handleAddCharge = (data: any) => {
+    const newCharge: CreditCharge = {
+      id: (creditCharges.length + 1).toString(),
+      description: data.description,
+      amount: parseFloat(data.amount),
+      date: data.date.toISOString().split("T")[0],
+      payments: parseInt(data.payments),
+      remainingPayments: parseInt(data.payments),
+    };
+    setCreditCharges([...creditCharges, newCharge]);
+  };
+
+  const totalFuturePayments = creditCharges.reduce((acc, charge) => {
+    return acc + (charge.amount * charge.remainingPayments) / charge.payments;
+  }, 0);
+
+  const totalRemainingPayments = creditCharges.reduce((acc, charge) => {
+    return acc + charge.remainingPayments;
+  }, 0);
+
   return (
     <div className="w-screen h-screen flex" dir="rtl">
       <SideNavigation
@@ -126,14 +149,16 @@ const ObligationsPage = () => {
         onSubmit={handleAddCheck}
       />
 
+      <AddChargeDialog
+        open={isAddChargeOpen}
+        onOpenChange={setIsAddChargeOpen}
+        onSubmit={handleAddCharge}
+      />
+
       <main className="flex-1 p-6 bg-gray-50 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">התחייבויות</h1>
-            <Button variant="outline" className="flex items-center gap-2">
-              <FileDown className="h-4 w-4" />
-              העלאת קובץ
-            </Button>
           </div>
 
           <Tabs defaultValue="checks" className="w-full">
@@ -235,12 +260,15 @@ const ObligationsPage = () => {
             <TabsContent value="credit">
               <Card className="p-6">
                 <div className="space-y-6">
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-5 w-5" />
                       <h2 className="text-xl font-semibold">חיובים בתשלומים</h2>
                     </div>
-                    <Button className="flex items-center gap-2">
+                    <Button
+                      className="flex items-center gap-2"
+                      onClick={() => setIsAddChargeOpen(true)}
+                    >
                       <Plus className="h-4 w-4" />
                       הוספת חיוב
                     </Button>
@@ -293,9 +321,11 @@ const ObligationsPage = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-blue-900">
-                          ₪8,400
+                          ₪{totalFuturePayments.toLocaleString()}
                         </p>
-                        <p className="text-sm text-blue-700">ב-14 תשלומים</p>
+                        <p className="text-sm text-blue-700">
+                          ב-{totalRemainingPayments} תשלומים
+                        </p>
                       </div>
                     </div>
                   </Card>
