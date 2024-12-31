@@ -4,11 +4,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -27,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -36,38 +33,57 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
-const formSchema = z.object({
-  description: z.string().min(2, { message: "חובה להזין תיאור" }),
-  amount: z.string().min(1, { message: "חובה להזין סכום" }),
-  category: z.string().min(1, { message: "חובה לבחור קטגוריה" }),
-  type: z.enum(["income", "expense"]),
-  date: z.date(),
-});
+import { transactionFormSchema } from "@/lib/validations";
+import { TransactionFormData, TransactionCategory } from "@/types/models";
+import { useAuthStore } from "@/lib/store";
 
 interface NewTransactionDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSubmit?: (data: z.infer<typeof formSchema>) => void;
+  onSubmit?: (data: TransactionFormData) => void;
 }
 
+const CATEGORIES: { value: TransactionCategory; label: string }[] = [
+  { value: "salary", label: "משכורת" },
+  { value: "food", label: "מזון" },
+  { value: "housing", label: "דיור" },
+  { value: "transportation", label: "תחבורה" },
+  { value: "entertainment", label: "בילויים" },
+  { value: "shopping", label: "קניות" },
+  { value: "utilities", label: "חשבונות" },
+  { value: "healthcare", label: "בריאות" },
+  { value: "education", label: "חינוך" },
+  { value: "other", label: "אחר" },
+];
+
 export function NewTransactionDialog({
-  open,
+  open = false,
   onOpenChange = () => {},
   onSubmit = () => {},
 }: NewTransactionDialogProps) {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const user = useAuthStore((state) => state.user);
+
+  const form = useForm<TransactionFormData>({
+    resolver: zodResolver(transactionFormSchema),
     defaultValues: {
       type: "expense",
       date: new Date(),
+      amount: "",
+      description: "",
+      category: "other",
     },
   });
 
-  const handleSubmit = (data: z.infer<typeof formSchema>) => {
-    onSubmit(data);
-    onOpenChange(false);
-    form.reset();
+  const handleSubmit = async (data: TransactionFormData) => {
+    if (!user) return;
+
+    try {
+      await onSubmit(data);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error submitting transaction:", error);
+    }
   };
 
   return (
@@ -147,11 +163,11 @@ export function NewTransactionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="salary">משכורת</SelectItem>
-                      <SelectItem value="food">מזון</SelectItem>
-                      <SelectItem value="housing">דיור</SelectItem>
-                      <SelectItem value="transportation">תחבורה</SelectItem>
-                      <SelectItem value="other">אחר</SelectItem>
+                      {CATEGORIES.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -199,7 +215,14 @@ export function NewTransactionDialog({
                 </FormItem>
               )}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                ביטול
+              </Button>
               <Button type="submit">הוסף תנועה</Button>
             </div>
           </form>

@@ -6,6 +6,8 @@ import {
   ScaleIcon,
   WalletIcon,
 } from "lucide-react";
+import { useTransactionStore } from "@/lib/store";
+import { Transaction } from "@/types/models";
 
 interface InfoCardProps {
   title: string;
@@ -48,37 +50,102 @@ const InfoCard = ({
   );
 };
 
-interface InfoCardsProps {
-  cards?: {
-    title: string;
-    value: string;
-    icon: React.ReactNode;
-    trend?: {
-      value: string;
-      isPositive: boolean;
-    };
-  }[];
-}
+const calculateTrends = (transactions: Transaction[]) => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const currentYear = now.getFullYear();
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-const InfoCards = ({ cards }: InfoCardsProps) => {
-  const defaultCards = [
+  const currentMonthTransactions = transactions.filter(
+    (t) =>
+      new Date(t.date).getMonth() === currentMonth &&
+      new Date(t.date).getFullYear() === currentYear,
+  );
+
+  const lastMonthTransactions = transactions.filter(
+    (t) =>
+      new Date(t.date).getMonth() === lastMonth &&
+      new Date(t.date).getFullYear() === lastMonthYear,
+  );
+
+  const currentIncome = currentMonthTransactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const currentExpenses = currentMonthTransactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lastIncome = lastMonthTransactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lastExpenses = lastMonthTransactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const incomeTrend = lastIncome
+    ? ((currentIncome - lastIncome) / lastIncome) * 100
+    : 0;
+  const expensesTrend = lastExpenses
+    ? ((currentExpenses - lastExpenses) / lastExpenses) * 100
+    : 0;
+  const balanceTrend =
+    lastIncome - lastExpenses
+      ? ((currentIncome - currentExpenses - (lastIncome - lastExpenses)) /
+          Math.abs(lastIncome - lastExpenses)) *
+        100
+      : 0;
+
+  return {
+    currentIncome,
+    currentExpenses,
+    currentBalance: currentIncome - currentExpenses,
+    incomeTrend,
+    expensesTrend,
+    balanceTrend,
+  };
+};
+
+const InfoCards = () => {
+  const transactions = useTransactionStore((state) => state.transactions);
+  const {
+    currentIncome,
+    currentExpenses,
+    currentBalance,
+    incomeTrend,
+    expensesTrend,
+    balanceTrend,
+  } = calculateTrends(transactions);
+
+  const cards = [
     {
       title: "סך הכנסות",
-      value: "₪15,000",
+      value: `₪${currentIncome.toLocaleString()}`,
       icon: <ArrowUpIcon className="h-4 w-4 text-green-500" />,
-      trend: { value: "12%", isPositive: true },
+      trend: {
+        value: `${Math.abs(incomeTrend).toFixed(1)}%`,
+        isPositive: incomeTrend >= 0,
+      },
     },
     {
       title: "סך הוצאות",
-      value: "₪8,500",
+      value: `₪${currentExpenses.toLocaleString()}`,
       icon: <ArrowDownIcon className="h-4 w-4 text-red-500" />,
-      trend: { value: "8%", isPositive: false },
+      trend: {
+        value: `${Math.abs(expensesTrend).toFixed(1)}%`,
+        isPositive: expensesTrend <= 0,
+      },
     },
     {
       title: "יתרה נוכחית",
-      value: "₪6,500",
+      value: `₪${currentBalance.toLocaleString()}`,
       icon: <WalletIcon className="h-4 w-4" />,
-      trend: { value: "4%", isPositive: true },
+      trend: {
+        value: `${Math.abs(balanceTrend).toFixed(1)}%`,
+        isPositive: balanceTrend >= 0,
+      },
     },
     {
       title: "השוואה לתקציב",
@@ -88,12 +155,10 @@ const InfoCards = ({ cards }: InfoCardsProps) => {
     },
   ];
 
-  const displayCards = cards || defaultCards;
-
   return (
     <div className="bg-gray-50 p-4 rounded-lg">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {displayCards.map((card, index) => (
+        {cards.map((card, index) => (
           <InfoCard key={index} {...card} />
         ))}
       </div>

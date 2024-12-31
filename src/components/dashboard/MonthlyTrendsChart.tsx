@@ -11,6 +11,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { useTransactionStore } from "@/lib/store";
+import { Transaction } from "@/types/models";
 
 ChartJS.register(
   CategoryScale,
@@ -22,36 +24,54 @@ ChartJS.register(
   Legend,
 );
 
-interface MonthlyTrendsChartProps {
-  data?: {
-    months: string[];
-    income: number[];
-    expenses: number[];
-  };
-}
+const getMonthlyData = (transactions: Transaction[]) => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(now.getMonth() - (5 - i));
+    return d;
+  });
 
-const defaultData = {
-  months: ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני"],
-  income: [4500, 5200, 4800, 5100, 5400, 5800],
-  expenses: [3800, 4100, 3900, 4300, 4200, 4600],
+  const monthlyData = months.map((month) => {
+    const monthTransactions = transactions.filter(
+      (t) =>
+        new Date(t.date).getMonth() === month.getMonth() &&
+        new Date(t.date).getFullYear() === month.getFullYear(),
+    );
+
+    const income = monthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const expenses = monthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return { month, income, expenses };
+  });
+
+  return monthlyData;
 };
 
-const MonthlyTrendsChart = ({
-  data = defaultData,
-}: MonthlyTrendsChartProps) => {
-  const chartData = {
-    labels: data.months,
+const MonthlyTrendsChart = () => {
+  const transactions = useTransactionStore((state) => state.transactions);
+  const monthlyData = getMonthlyData(transactions);
+
+  const data = {
+    labels: monthlyData.map((d) =>
+      d.month.toLocaleDateString("he-IL", { month: "short" }),
+    ),
     datasets: [
       {
         label: "הכנסות",
-        data: data.income,
+        data: monthlyData.map((d) => d.income),
         borderColor: "rgb(34, 197, 94)",
         backgroundColor: "rgba(34, 197, 94, 0.5)",
         tension: 0.4,
       },
       {
         label: "הוצאות",
-        data: data.expenses,
+        data: monthlyData.map((d) => d.expenses),
         borderColor: "rgb(239, 68, 68)",
         backgroundColor: "rgba(239, 68, 68, 0.5)",
         tension: 0.4,
@@ -101,7 +121,7 @@ const MonthlyTrendsChart = ({
   return (
     <Card className="w-full h-[300px] p-4 bg-white">
       <div className="w-full h-full">
-        <Line data={chartData} options={options} />
+        <Line data={data} options={options} />
       </div>
     </Card>
   );

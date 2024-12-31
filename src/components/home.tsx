@@ -1,28 +1,38 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import SideNavigation from "./dashboard/SideNavigation";
+import React, { useEffect } from "react";
 import InfoCards from "./dashboard/InfoCards";
 import MonthlyTrendsChart from "./dashboard/MonthlyTrendsChart";
 import TransactionsTable from "./dashboard/TransactionsTable";
+import { useAuthStore, useTransactionStore } from "@/lib/store";
 
 function Home() {
-  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const fetchTransactions = useTransactionStore(
+    (state) => state.fetchTransactions,
+  );
+  const isLoading = useTransactionStore((state) => state.isLoading);
 
-  const handleNavigate = (path: string) => {
-    navigate(path);
-  };
+  useEffect(() => {
+    const loadData = async () => {
+      if (user?.id) {
+        await fetchTransactions(user.id);
+      }
+    };
+    loadData();
+  }, [user?.id, fetchTransactions]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>טוען נתונים...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-screen h-screen flex" dir="rtl">
-      <SideNavigation onNavigate={handleNavigate} />
-
-      <main className="flex-1 p-6 bg-gray-50 overflow-auto">
-        <div className="space-y-6 max-w-7xl mx-auto">
-          <InfoCards />
-          <MonthlyTrendsChart />
-          <TransactionsTable />
-        </div>
-      </main>
+    <div className="space-y-6">
+      <InfoCards />
+      <MonthlyTrendsChart />
+      <TransactionsTable />
     </div>
   );
 }

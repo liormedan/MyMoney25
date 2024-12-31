@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -20,58 +20,70 @@ import { Button } from "@/components/ui/button";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
 import { ArrowUpIcon, ArrowDownIcon, SearchIcon, FileDown } from "lucide-react";
 import * as XLSX from "xlsx";
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  type: "income" | "expense";
-}
+import { useTransactionStore } from "@/lib/store";
+import { Transaction, TransactionCategory } from "@/types/models";
 
 interface TransactionsTableProps {
-  transactions?: Transaction[];
-  onFilterChange?: (category: string) => void;
+  onFilterChange?: (category: TransactionCategory | "all") => void;
   onSearch?: (term: string) => void;
   onDateRangeChange?: (range: { from: Date; to: Date }) => void;
 }
 
-const defaultTransactions: Transaction[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    description: "משכורת חודשית",
-    category: "הכנסה",
-    amount: 12000,
-    type: "income",
-  },
-  {
-    id: "2",
-    date: "2024-01-16",
-    description: "קניות בסופר",
-    category: "מזון",
-    amount: 500,
-    type: "expense",
-  },
-  {
-    id: "3",
-    date: "2024-01-17",
-    description: "תשלום שכירות",
-    category: "דיור",
-    amount: 4000,
-    type: "expense",
-  },
+const CATEGORIES: { value: TransactionCategory | "all"; label: string }[] = [
+  { value: "all", label: "הכל" },
+  { value: "salary", label: "משכורת" },
+  { value: "food", label: "מזון" },
+  { value: "housing", label: "דיור" },
+  { value: "transportation", label: "תחבורה" },
+  { value: "entertainment", label: "בילויים" },
+  { value: "shopping", label: "קניות" },
+  { value: "utilities", label: "חשבונות" },
+  { value: "healthcare", label: "בריאות" },
+  { value: "education", label: "חינוך" },
+  { value: "other", label: "אחר" },
 ];
 
 const TransactionsTable = ({
-  transactions = defaultTransactions,
   onFilterChange = () => {},
   onSearch = () => {},
   onDateRangeChange = () => {},
 }: TransactionsTableProps) => {
+  const transactions = useTransactionStore((state) => state.transactions);
+  const [filteredTransactions, setFilteredTransactions] =
+    useState<Transaction[]>(transactions);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<
+    TransactionCategory | "all"
+  >("all");
+
+  useEffect(() => {
+    let filtered = [...transactions];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((t) =>
+        t.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((t) => t.category === selectedCategory);
+    }
+
+    setFilteredTransactions(filtered);
+  }, [transactions, searchTerm, selectedCategory]);
+
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(transactions);
+    const data = filteredTransactions.map((t) => ({
+      תאריך: new Date(t.date).toLocaleDateString("he-IL"),
+      תיאור: t.description,
+      קטגוריה: CATEGORIES.find((c) => c.value === t.category)?.label,
+      סכום: t.amount,
+      סוג: t.type === "income" ? "הכנסה" : "הוצאה",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Transactions");
     XLSX.writeFile(wb, "transactions.xlsx");
@@ -104,22 +116,32 @@ const TransactionsTable = ({
               <Input
                 placeholder="חיפוש תנועות"
                 className="pl-4 pr-10"
-                onChange={(e) => onSearch(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  onSearch(e.target.value);
+                }}
               />
             </div>
           </div>
           <div className="flex gap-4 items-center">
             <DatePickerWithRange onChange={onDateRangeChange} />
-            <Select onValueChange={onFilterChange}>
+            <Select
+              value={selectedCategory}
+              onValueChange={(value: TransactionCategory | "all") => {
+                setSelectedCategory(value);
+                onFilterChange(value);
+              }}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="סינון לפי קטגוריה" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">הכל</SelectItem>
-                <SelectItem value="income">הכנסות</SelectItem>
-                <SelectItem value="food">מזון</SelectItem>
-                <SelectItem value="housing">דיור</SelectItem>
-                <SelectItem value="transportation">תחבורה</SelectItem>
+                {CATEGORIES.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -137,13 +159,18 @@ const TransactionsTable = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
+              {filteredTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
                     {new Date(transaction.date).toLocaleDateString("he-IL")}
                   </TableCell>
                   <TableCell>{transaction.description}</TableCell>
-                  <TableCell>{transaction.category}</TableCell>
+                  <TableCell>
+                    {
+                      CATEGORIES.find((c) => c.value === transaction.category)
+                        ?.label
+                    }
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {transaction.type === "income" ? (
